@@ -1,42 +1,16 @@
 #!/usr/bin/env bash
-# This script displays information about specified subdomains of a domain
-# using predefined IP addresses for each subdomain.
+# print domains and subdomains
 
-# Define IP addresses for each subdomain
-declare -A subdomain_ips=(
-    ["www"]="54.197.215.46"       # lb-01 (load balancer)
-    ["lb-01"]="54.197.215.46"      # lb-01
-    ["web-01"]="54.196.148.122"    # web-01
-    ["web-02"]="54.163.26.229"     # web-02
-)
-
-# Function to display subdomain information
-get_subdomain_info() {
-    local subdomain=$1
-    local ip=${subdomain_ips[$subdomain]}
-
-    if [[ -n "$ip" ]]; then
-        echo "The subdomain $subdomain is an A record and points to $ip"
-    else
-        echo "No record found for $subdomain"
-    fi
+print_domain_subdomain () {
+    dig "$1" | grep -A1 'ANSWER SECTION:' | sed -r "s/$1./$2/g" | awk -F" " ' NR==2 { print "The subdomain " $1 " is a " $4 " record and points to " $5 }'
 }
 
-# Main script logic
-domain=$1
-subdomain=$2
-
-if [[ -z "$domain" ]]; then
-    echo "Usage: $0 <domain> [subdomain]"
-    exit 1
-fi
-
-# Check if a specific subdomain is provided
-if [[ -n "$subdomain" ]]; then
-    get_subdomain_info "$subdomain"
+if [ "$#" -eq 2 ]
+then
+    print_domain_subdomain "$2.$1" "$2"
 else
-    # Display information for all default subdomains
-    for sd in www lb-01 web-01 web-02; do
-        get_subdomain_info "$sd"
-    done
+    print_domain_subdomain "www.$1" "www"
+    print_domain_subdomain "lb-01.$1" "lb-01"
+    print_domain_subdomain "web-01.$1" "web-01"
+    print_domain_subdomain "web-02.$1" "web-02"
 fi
